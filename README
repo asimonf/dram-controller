@@ -1,0 +1,49 @@
+## FPM DRAM Controller (VHDL)
+
+**Features:**
+
+Right now it's pretty barebones and is WIP. Check back in a while for updates. It's meant to support auto closing and opening pages and should support multible banks with interleaving.
+
+**Requirements:**
+
+* VHDL simulator (currently tested with GHDL)
+* GNU Make
+
+**Getting Started:**
+
+1. Clone this repository:
+
+   ```bash
+   git clone https://github.com/asimonf/dram-controller.git
+   ```
+
+2. Run the following to run a testbench:
+
+   ```bash
+   make TESTBENCH=testbench
+   ```
+3. Modify and customize the code based on your specific requirements.
+
+**Folder Structure:**
+
+* `src/`: Contains the source code and `src/top_level.vhd` contains the top level design
+* `testbench/`: Contains testbenches for simulating the controller
+* `lib/`: Defines constants and types used throughout the project
+* `docs/`: Contains documentation
+
+**Configuration:**
+
+* Default memory parameters can be adjusted in `lib/constants.vhd` (if used)
+* Refresh cycle timing can be modified in the controller code
+
+**Further Considerations:**
+
+* This is a basic implementation and may require extension for more advanced features.
+
+**Contact:**
+
+Feel free to contribute or ask questions by opening an issue on this repository.
+
+**Disclaimer:**
+
+This code is provided for educational purposes only. The author is not responsible for any misuse or errors in the implementation.

@@ -1,0 +1,13 @@
+[libraries]
+common_lib.files = [
+    'lib/*.vhd',
+    'lib/**/*.vhd',
+    'src/*.vhd',
+    'src/**/*.vhd',
+    'testbench/*.vhd',
+    'testbench/**/*.vhd',
+]
+
+[lint]
+unused = 'error' # Upgrade the 'unused' diagnostic to the 'error' severity
+unnecessary_work_library = false # Disable linting for the 'library work;' statement

@@ -9,6 +9,12 @@ package types is
     subtype small_counter_type is unsigned(1 downto 0);
     subtype row_address_type is std_logic_vector(11 downto 0);
 
+    constant INIT_COUNT_THRESHOLD_CONST   : init_counter_type         := to_unsigned(200_000_000 / 20, 24);
+    constant INIT_REFRESH_THRESHOLD_CONST : init_refresh_counter_type := to_unsigned(7, 3);
+    constant REFRESH_THRESHOLD_CONST      : refresh_counter_type      := to_unsigned(780, 10);
+    constant PRECHARGE_THRESHOLD_CONST    : small_counter_type        := to_unsigned(3, 2);
+    constant REFRESH_RAS_THRESHOLD_CONST  : small_counter_type        := to_unsigned(3, 2);
+
     type controller_config_record is record
         init_count_threshold   : init_counter_type;
         init_refresh_threshold : init_refresh_counter_type;

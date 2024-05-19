@@ -1,5 +1,6 @@
 # vhdl files
-FILES = source/*
+LIB = $(wildcard lib/**/*.vhd lib/*.vhd)
+FILES = $(wildcard src/**/*.vhd src/*.vhd)
 
 # testbench
 TESTBENCHPATH = $(wildcard testbench/**/${TESTBENCH}*.vhd)
@@ -21,22 +22,41 @@ WAVEFORM_VIEWER = gtkwave
 
 all: clean make run view
 
+reload: make run
+
 make:
+	@mkdir -p $(WORKDIR)
+
+ifeq ($(LIB),)
+	$(warning No library files found. Ignoring...)
+else
+	@$(GHDL_CMD) -a $(GHDL_FLAGS) $(LIB)
+endif
+
+ifeq ($(FILES),)
+	@$(warning No source files found!)
+	@exit 1
+endif
+	
+	@$(GHDL_CMD) -a $(GHDL_FLAGS) $(FILES)
+
 ifeq ($(strip $(TESTBENCH)),)
 	@echo "TESTBENCH not set. Use TESTBENCH=<value> to set it."
 	@exit 1
 endif
 
-	@mkdir -p $(WORKDIR)
-	$(GHDL_CMD) -a $(GHDL_FLAGS) $(FILES)
-	$(GHDL_CMD) -a $(GHDL_FLAGS) $(TESTBENCHPATH)
-	$(GHDL_CMD) -e $(GHDL_FLAGS) $(basename $(notdir $(TESTBENCHPATH)))
+ifneq ($(TESTBENCHPATH),)	
+	@$(GHDL_CMD) -a $(GHDL_FLAGS) $(TESTBENCHPATH)
+	@$(GHDL_CMD) -e $(GHDL_FLAGS) $(basename $(notdir $(TESTBENCHPATH)))
+else
+	@$(warning No source files found!)
+endif
 
 run:
-	$(GHDL_CMD) -r $(GHDL_FLAGS) --workdir=$(WORKDIR) $(basename $(notdir $(TESTBENCHPATH))) --vcd=$(WORKDIR)/$(basename $(notdir $(TESTBENCHPATH))).vcd $(GHDL_SIM_OPT)
+	@$(GHDL_CMD) -r $(GHDL_FLAGS) $(basename $(notdir $(TESTBENCHPATH))) --vcd=$(WORKDIR)/$(basename $(notdir $(TESTBENCHPATH))).vcd $(GHDL_SIM_OPT)
 
 view:
-	$(WAVEFORM_VIEWER) --dump=$(WORKDIR)/$(basename $(notdir $(TESTBENCHPATH))).vcd
+	@$(WAVEFORM_VIEWER) --dump=$(WORKDIR)/$(basename $(notdir $(TESTBENCHPATH))).vcd
 
 clean:
 	@rm -rf $(WORKDIR)

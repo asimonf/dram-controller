@@ -4,13 +4,12 @@ use ieee.numeric_std.all;
 
 library work;
 use work.types.all;
-use work.constants.all;
 
 entity tb_state_machine is
 end entity;
 
 architecture tb of tb_state_machine is
-    component RamController
+    component state_machine
         port (
             i_config      : in controller_config_record;
             i_clk         : in std_logic;
@@ -45,7 +44,7 @@ architecture tb of tb_state_machine is
 
 begin
 
-    dut : RamController
+    dut : state_machine
     port map(
         i_config      => i_config,
         i_clk         => i_clk,
@@ -71,7 +70,7 @@ begin
     i_config.precharge_threshold    <= PRECHARGE_THRESHOLD_CONST;
     i_config.refresh_ras_threshold  <= REFRESH_RAS_THRESHOLD_CONST;
 
-    internal_initialized <= << signal .tb_RamController.dut.initialized : boolean >> ;
+    internal_initialized <= << signal .tb_state_machine.dut.initialized : boolean >> ;
 
     stimuli : process
     begin

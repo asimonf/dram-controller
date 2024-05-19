@@ -6,6 +6,9 @@ library work;
 use work.types.all;
 
 entity state_machine is
+    generic (
+        ROW_WIDTH : integer := 12
+    );
     port (
         i_config : in controller_config_record;
 
@@ -13,7 +16,7 @@ entity state_machine is
         i_reset_n  : in std_logic;
         i_cs_n     : in std_logic;
         i_we_n     : in std_logic;
-        i_row_addr : in row_address_type;
+        i_row_addr : in std_logic_vector(ROW_WIDTH - 1 downto 0);
 
         o_dsack       : out std_logic;
         o_ras_n       : out std_logic;
@@ -39,7 +42,7 @@ architecture behavioral of state_machine is
     signal curr_state, next_state : state_type;
 
     -- Clock Synchronized
-    signal init_counter          : INIT_COUNTER_TYPE    := (others => '0'); -- clk cycles to wait before starting
+    signal init_counter          : init_counter_type    := (others => '0'); -- clk cycles to wait before starting
     signal refresh_cycle_counter : refresh_counter_type := (others => '0'); -- clk cycles to wait for next refresh
     signal refresh_ras_counter   : small_counter_type   := (others => '0'); -- clk cycles to wait in RAS during refresh
     signal precharge_counter     : small_counter_type   := (others => '0'); -- clk cycles to wait during precharge

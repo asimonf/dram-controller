@@ -2,12 +2,33 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+-- This decoder is made for a 68020 compatible bus. It supports bank interleaving,
+-- if the bank width is larger than 0. For practical limitations, maybe limit yourself to
+-- only a few banks like 2 (bank width = 1), but if the outputs are buffered you could
+-- have more than 2 banks.
+-- 
+-- The address word can be described as the following:
+-- 
+--              (                   (Address Word)                  )
+--              |<--                ADDRESS_WIDTH                -->|
+--              |                                                   |
+--              |<- ROW_WIDTH ->/<- BANK_WIDTH ->/<- COLUMN_WIDTH ->|
+--              |                                                   |
+--              |<-  (Block Address)  ->/<--  BASE_BLOCK_WIDTH   -->|
+--              /                                                   \
+--      ADDRESS_WIDTH - 1                                            0
+--
+-- - The row address bits are the first ROW_WIDTH bits of the address word
+-- - The selected bank bits (if defined) are going to be the the next BANK_WIDTH bits of the word after the row address
+-- - The column address are going to be the next bits after the bank until the end.
+
 entity decoder is
     generic (
         BASE_BLOCK_WIDTH : integer := 20;
         ADDRESS_WIDTH    : integer := 28;
+        COLUMN_WIDTH     : integer := 10;
         BANK_WIDTH       : integer := 0;
-        COLUMN_WIDTH     : integer := 10);
+        ROW_WIDTH        : integer := 10);
     port (
         i_reset_n : in std_logic;
 
@@ -23,6 +44,7 @@ entity decoder is
         o_row_addr : out std_logic_vector(ADDRESS_WIDTH - COLUMN_WIDTH - BANK_WIDTH - 1 downto 0);
         o_col_addr : out std_logic_vector(COLUMN_WIDTH - 1 downto 0);
 
+        o_bank     : out integer range 0 to (2 ** BANK_WIDTH) - 1;
         o_bank_sel : out std_logic_vector((2 ** BANK_WIDTH) - 1 downto 0);
 
         o_we_n : out std_logic_vector(3 downto 0);
@@ -37,13 +59,32 @@ architecture behavioral of decoder is
     signal lmb : std_logic;
     signal llb : std_logic;
 begin
-    assert ADDRESS_WIDTH > BASE_BLOCK_WIDTH;
-    assert ADDRESS_WIDTH >= BANK_WIDTH + COLUMN_WIDTH;
-    assert ADDRESS_WIDTH <= 32;
-    assert BANK_WIDTH >= 0;
-    assert COLUMN_WIDTH > 0;
-    assert BASE_BLOCK_WIDTH >= 2;
+    -- ** Assertions **
 
+    -- All addresses must have a column width and a row width larger than 0
+    assert ROW_WIDTH > 0;
+    assert COLUMN_WIDTH > 0;
+
+    -- Don't know if this is always the case for DRAM, but it must be for this design
+    assert COLUMN_WIDTH <= ROW_WIDTH;
+
+    -- Bank can be disabled by specifying it to be 0, but it must be positive otherwise
+    assert BANK_WIDTH >= 0;
+
+    -- Data words are expected to be 32-bits so address blocks must have at least 4 bytes
+    assert BASE_BLOCK_WIDTH >= 2;
+    assert BASE_BLOCK_WIDTH < ADDRESS_WIDTH;
+
+    -- While nothing specific about this design makes it incompatible with larger addresses,
+    -- I won't take into consideration larger addresses when designing this
+    assert ADDRESS_WIDTH <= 32;
+
+    -- Make sure the config makes sense
+    assert ADDRESS_WIDTH = ROW_WIDTH + BANK_WIDTH + COLUMN_WIDTH;
+
+    -- ** Combinational Logic **
+
+    -- Decode SIZ1, SIZ0, A1 and A0 to determine which bytes are selected from the 32-bit data word
     uub <= not i_addr(1) and not i_addr(0);
 
     umb <= (not i_addr(1) and i_addr(0)) or
@@ -58,25 +99,32 @@ begin
         (not i_addr(1) and i_addr(0) and ((not i_siz(1) and not i_siz(0)) or (i_siz(1) and i_siz(0)))) or
         (not i_addr(1) and not i_addr(0) and not (not i_siz(1) and not i_siz(0)));
 
-    o_row_addr <= i_addr(ADDRESS_WIDTH - 1 downto COLUMN_WIDTH + BANK_WIDTH);
+    -- Decode column and row addresses
+    o_row_addr <= i_addr(ADDRESS_WIDTH - 1 downto ADDRESS_WIDTH - ROW_WIDTH);
     o_col_addr <= i_addr(COLUMN_WIDTH - 1 downto 0);
 
+    -- ** Processes **
+
+    -- If multiple banks are permitted, decode the bank
     multi_bank : if BANK_WIDTH > 0 generate
     begin
         process (i_addr)
             variable bank_addr : std_logic_vector(BANK_WIDTH - 1 downto 0);
-            variable bank_bit  : integer;
+            variable bank_bit  : integer range 0 to (2 ** BANK_WIDTH) - 1;
         begin
             bank_addr := i_addr(COLUMN_WIDTH + BANK_WIDTH - 1 downto COLUMN_WIDTH);
             bank_bit  := to_integer(unsigned(bank_addr));
 
+            o_bank               <= bank_bit;
             o_bank_sel           <= (others => '0');
             o_bank_sel(bank_bit) <= '1';
         end process;
     end generate multi_bank;
 
+    -- Otherwise just select the single bank available
     single_bank : if BANK_WIDTH = 0 generate
     begin
+        o_bank     <= 0;
         o_bank_sel <= (others => '1');
     end generate single_bank;
 
@@ -86,6 +134,7 @@ begin
         variable addr_match  : boolean;
         variable cs_n        : std_logic;
     begin
+        -- Do not decode CPU Cycles if selected or when being reset
         if i_as_n = '1' or i_reset_n = '0' or i_fc = "111" then
             o_we_n <= (others => '1');
             o_oe_n <= (others => '1');
@@ -97,10 +146,10 @@ begin
             if addr_match then
                 addr_offset := addr_block - unsigned(i_base_addr);
 
-                if addr_offset < unsigned(i_base_addr) then
-                    cs_n := '1';
-                else
+                if addr_offset < unsigned(i_base_size) then
                     cs_n := '0';
+                else
+                    cs_n := '1';
                 end if;
             else
                 cs_n := '1';

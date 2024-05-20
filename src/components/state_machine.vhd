@@ -16,12 +16,15 @@ entity state_machine is
         i_reset_n  : in std_logic;
         i_cs_n     : in std_logic;
         i_we_n     : in std_logic;
+        i_oe_n     : in std_logic;
         i_row_addr : in std_logic_vector(ROW_WIDTH - 1 downto 0);
 
-        o_dsack       : out std_logic;
-        o_ras_n       : out std_logic;
-        o_cas_n       : out std_logic;
-        o_we_n        : out std_logic;
+        o_dsack : out std_logic;
+        o_ras_n : out std_logic;
+        o_cas_n : out std_logic;
+        o_we_n  : out std_logic;
+        o_oe_n  : out std_logic;
+
         o_mux_col_sel : out std_logic);
 end entity;
 
@@ -42,7 +45,6 @@ architecture behavioral of state_machine is
     signal curr_state, next_state : state_type;
 
     -- Clock Synchronized
-    signal init_counter          : init_counter_type    := (others => '0'); -- clk cycles to wait before starting
     signal refresh_cycle_counter : refresh_counter_type := (others => '0'); -- clk cycles to wait for next refresh
     signal refresh_ras_counter   : small_counter_type   := (others => '0'); -- clk cycles to wait in RAS during refresh
     signal precharge_counter     : small_counter_type   := (others => '0'); -- clk cycles to wait during precharge
@@ -63,7 +65,6 @@ begin
         if i_reset_n = '0' then
             curr_state <= RESET;
 
-            init_counter          <= (others => '0');
             refresh_cycle_counter <= (others => '0');
             refresh_ras_counter   <= (others => '0');
             precharge_counter     <= (others => '0');
@@ -82,8 +83,6 @@ begin
                     refresh_cycle_counter <= (others => '0');
                     refresh_req           <= true;
                 end if;
-            elsif init_counter < i_config.init_count_threshold then
-                init_counter <= init_counter + 1;
             end if;
 
             if precharge_started and precharge_counter < i_config.precharge_threshold then
@@ -101,7 +100,7 @@ begin
     end process;
 
     -- Next state logic
-    process (curr_state, refresh_req, i_cs_n, init_counter, refresh_ras_counter, precharge_counter)
+    process (curr_state, refresh_req, i_cs_n, refresh_ras_counter, precharge_counter)
     begin
         case curr_state is
             when RESET                      =>
@@ -117,6 +116,7 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 next_state <= WAIT_INIT;
@@ -125,9 +125,10 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
-                if init_counter < i_config.init_count_threshold then
+                if i_cs_n = '1' then
                     next_state <= WAIT_INIT;
                 else
                     next_state <= REFRESH_START;
@@ -137,6 +138,7 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 refresh_taken <= true;
@@ -146,6 +148,7 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '0';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 next_state      <= REFRESH_RAS;
@@ -155,6 +158,7 @@ begin
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 if refresh_ras_counter = i_config.refresh_ras_threshold then
@@ -171,6 +175,7 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 if precharge_counter = i_config.precharge_threshold then
@@ -199,6 +204,7 @@ begin
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 if refresh_req then
@@ -213,6 +219,7 @@ begin
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '0';
 
                 open_row_addr <= i_row_addr;
@@ -222,6 +229,7 @@ begin
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
+                o_oe_n        <= '1';
                 o_mux_col_sel <= '1';
 
                 if refresh_req then
@@ -240,6 +248,7 @@ begin
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_we_n        <= i_we_n;
+                o_oe_n        <= i_oe_n;
                 o_mux_col_sel <= '1';
 
                 if i_cs_n = '1' then

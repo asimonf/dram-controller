@@ -3,14 +3,14 @@ LIB = $(wildcard lib/**/*.vhd lib/*.vhd)
 FILES = $(wildcard src/**/*.vhd src/*.vhd)
 
 # testbench
-TESTBENCHPATH = $(wildcard testbench/**/${TESTBENCH}*.vhd)
+TESTBENCHPATH = $(wildcard testbench/**/${TESTBENCH}*.vhd testbench/${TESTBENCH}*.vhd)
 WORKDIR = work
 
 # GHDL CONFIG
 GHDL_CMD = ghdl
 GHDL_FLAGS = --std=08 --ieee=synopsys --warn-no-vital-generic --workdir=$(WORKDIR)
 
-STOP_TIME = 32ms
+STOP_TIME = 1ms
 # Simulation break condition
 # GHDL_SIM_OPT = --assert-level=error
 GHDL_SIM_OPT = --stop-time=$(STOP_TIME)

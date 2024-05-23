@@ -28,7 +28,8 @@ entity decoder is
         ADDRESS_WIDTH    : integer := 28;
         COLUMN_WIDTH     : integer := 10;
         BANK_WIDTH       : integer := 0;
-        ROW_WIDTH        : integer := 10);
+        ROW_WIDTH        : integer := 18;
+        CAPACITY_MB      : integer := 128);
     port (
         i_reset_n : in std_logic;
 
@@ -38,10 +39,7 @@ entity decoder is
         i_rw_n : in std_logic;
         i_fc   : in std_logic_vector(2 downto 0);
 
-        i_base_addr : in std_logic_vector(ADDRESS_WIDTH - BASE_BLOCK_WIDTH - 1 downto 0);
-        i_base_size : in std_logic_vector(ADDRESS_WIDTH - BASE_BLOCK_WIDTH - 1 downto 0);
-
-        o_row_addr : out std_logic_vector(ADDRESS_WIDTH - COLUMN_WIDTH - BANK_WIDTH - 1 downto 0);
+        o_row_addr : out std_logic_vector(ROW_WIDTH - 1 downto 0);
         o_col_addr : out std_logic_vector(COLUMN_WIDTH - 1 downto 0);
 
         o_bank     : out integer range 0 to (2 ** BANK_WIDTH) - 1;
@@ -62,25 +60,36 @@ begin
     -- ** Assertions **
 
     -- All addresses must have a column width and a row width larger than 0
-    assert ROW_WIDTH > 0;
-    assert COLUMN_WIDTH > 0;
-
-    -- Don't know if this is always the case for DRAM, but it must be for this design
-    assert COLUMN_WIDTH <= ROW_WIDTH;
+    assert ROW_WIDTH > 0
+    report "Error: ROM_WIDTH must be greated than 0"
+        severity error;
+    assert COLUMN_WIDTH > 0
+    report "Error: COLUMN_WIDTH must be greated than 0"
+        severity error;
 
     -- Bank can be disabled by specifying it to be 0, but it must be positive otherwise
-    assert BANK_WIDTH >= 0;
+    assert BANK_WIDTH >= 0
+    report "Error: BANK_WIDTH must be greated than or equal to 0"
+        severity error;
 
     -- Data words are expected to be 32-bits so address blocks must have at least 4 bytes
-    assert BASE_BLOCK_WIDTH >= 2;
-    assert BASE_BLOCK_WIDTH < ADDRESS_WIDTH;
+    assert BASE_BLOCK_WIDTH >= 2
+    report "Error: BASE_BLOCK_WIDTH must be greated than or equal to 2"
+        severity error;
+    assert BASE_BLOCK_WIDTH < ADDRESS_WIDTH
+    report "Error: BASE_BLOCK_WIDTH must be smaller than ADDRESS_WIDTH"
+        severity error;
 
     -- While nothing specific about this design makes it incompatible with larger addresses,
     -- I won't take into consideration larger addresses when designing this
-    assert ADDRESS_WIDTH <= 32;
+    assert ADDRESS_WIDTH <= 32
+    report "Error: ADDRESS_WIDTH must be smaller or equal to 32"
+        severity error;
 
     -- Make sure the config makes sense
-    assert ADDRESS_WIDTH = ROW_WIDTH + BANK_WIDTH + COLUMN_WIDTH;
+    assert ADDRESS_WIDTH = ROW_WIDTH + BANK_WIDTH + COLUMN_WIDTH
+    report "Error: ADDRESS_WIDTH must be to the sum of ROW_WIDTH, BANK_WIDTH and COLUMN_WIDTH"
+        severity error;
 
     -- ** Combinational Logic **
 
@@ -129,10 +138,10 @@ begin
     end generate single_bank;
 
     process (i_reset_n, i_as_n)
-        variable addr_block  : unsigned(ADDRESS_WIDTH - BASE_BLOCK_WIDTH - 1 downto 0) := (others => '0');
-        variable addr_offset : unsigned(ADDRESS_WIDTH - BASE_BLOCK_WIDTH - 1 downto 0) := (others => '0');
-        variable addr_match  : boolean;
-        variable cs_n        : std_logic;
+        constant block_base : integer := 2 ** (ADDRESS_WIDTH - BASE_BLOCK_WIDTH) - CAPACITY_MB;
+
+        variable addr_block : integer range 0 to 2 ** (ADDRESS_WIDTH - BASE_BLOCK_WIDTH) - 1 := 0;
+        variable cs_n       : std_logic;
     begin
         -- Do not decode CPU Cycles if selected or when being reset
         if i_as_n = '1' or i_reset_n = '0' or i_fc = "111" then
@@ -140,17 +149,10 @@ begin
             o_oe_n <= (others => '1');
             o_cs_n <= '1';
         else
-            addr_block := unsigned(i_addr(ADDRESS_WIDTH - 1 downto BASE_BLOCK_WIDTH));
-            addr_match := addr_block >= unsigned(i_base_addr);
+            addr_block := to_integer(unsigned(i_addr(ADDRESS_WIDTH - 1 downto BASE_BLOCK_WIDTH)));
 
-            if addr_match then
-                addr_offset := addr_block - unsigned(i_base_addr);
-
-                if addr_offset < unsigned(i_base_size) then
-                    cs_n := '0';
-                else
-                    cs_n := '1';
-                end if;
+            if addr_block >= block_base then
+                cs_n := '0';
             else
                 cs_n := '1';
             end if;

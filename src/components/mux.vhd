@@ -22,14 +22,19 @@ begin
     -- ** Assertions **
 
     -- All addresses must have a column width and a row width larger than 0
-    assert ROW_WIDTH > 0;
-    assert COLUMN_WIDTH > 0;
-
-    -- Don't know if this is always the case for DRAM, but it must be for this design
-    assert COLUMN_WIDTH <= ROW_WIDTH;
+    assert ROW_WIDTH > 0
+    report "Error: ROM_WIDTH must be greated than 0"
+        severity error;
+    assert COLUMN_WIDTH > 0
+    report "Error: COLUMN_WIDTH must be greated than 0"
+        severity error;
 
     -- Make sure the config makes sense
-    assert ADDRESS_WIDTH = ROW_WIDTH + BANK_WIDTH + COLUMN_WIDTH;
+    assert ADDRESS_WIDTH = ROW_WIDTH + BANK_WIDTH + COLUMN_WIDTH
+    report "Error: ADDRESS_WIDTH must be to the sum of ROW_WIDTH, BANK_WIDTH and COLUMN_WIDTH"
+        severity error;
+
+    -- ** Logic **
 
     process (i_mux_col_sel, i_bank)
         variable col_sel : std_logic;

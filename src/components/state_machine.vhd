@@ -19,11 +19,11 @@ entity state_machine is
         i_oe_n     : in std_logic;
         i_row_addr : in std_logic_vector(ROW_WIDTH - 1 downto 0);
 
-        o_dsack : out std_logic;
-        o_ras_n : out std_logic;
-        o_cas_n : out std_logic;
-        o_we_n  : out std_logic;
-        o_oe_n  : out std_logic;
+        o_dsack_n : out std_logic;
+        o_ras_n   : out std_logic;
+        o_cas_n   : out std_logic;
+        o_we_n    : out std_logic;
+        o_oe_n    : out std_logic;
 
         o_mux_col_sel : out std_logic);
 end entity;
@@ -45,18 +45,18 @@ architecture behavioral of state_machine is
     signal curr_state, next_state : state_type;
 
     -- Clock Synchronized
-    signal refresh_cycle_counter : refresh_counter_type := (others => '0'); -- clk cycles to wait for next refresh
-    signal refresh_ras_counter   : small_counter_type   := (others => '0'); -- clk cycles to wait in RAS during refresh
-    signal precharge_counter     : small_counter_type   := (others => '0'); -- clk cycles to wait during precharge
-    signal refresh_req           : boolean              := false;           -- signals that a refresh is required
+    signal refresh_cycle_counter : refresh_counter_type := 0;     -- clk cycles to wait for next refresh
+    signal refresh_ras_counter   : small_counter_type   := 0;     -- clk cycles to wait in RAS during refresh
+    signal precharge_counter     : small_counter_type   := 0;     -- clk cycles to wait during precharge
+    signal refresh_req           : boolean              := false; -- signals that a refresh is required
 
     -- Async
-    signal initialized          : boolean                   := false;
-    signal open_row_addr        : row_address_type          := (others => '0');
-    signal ras_counter_req      : boolean                   := false;
-    signal refresh_taken        : boolean                   := false;
-    signal precharge_started    : boolean                   := false;
-    signal init_refresh_counter : init_refresh_counter_type := (others => '0'); -- refresh cycles after wait time
+    signal initialized          : boolean                                  := false;
+    signal open_row_addr        : std_logic_vector(ROW_WIDTH - 1 downto 0) := (others => '0');
+    signal ras_counter_req      : boolean                                  := false;
+    signal refresh_taken        : boolean                                  := false;
+    signal precharge_started    : boolean                                  := false;
+    signal init_refresh_counter : init_refresh_counter_type                := 0; -- refresh cycles after wait time
 begin
 
     -- Process for state transitions and output logic
@@ -65,9 +65,9 @@ begin
         if i_reset_n = '0' then
             curr_state <= RESET;
 
-            refresh_cycle_counter <= (others => '0');
-            refresh_ras_counter   <= (others => '0');
-            precharge_counter     <= (others => '0');
+            refresh_cycle_counter <= 0;
+            refresh_ras_counter   <= 0;
+            precharge_counter     <= 0;
             refresh_req           <= false;
         elsif rising_edge(i_clk) then
             curr_state <= next_state;
@@ -80,7 +80,7 @@ begin
                         refresh_req <= false;
                     end if;
                 else
-                    refresh_cycle_counter <= (others => '0');
+                    refresh_cycle_counter <= 0;
                     refresh_req           <= true;
                 end if;
             end if;
@@ -88,13 +88,13 @@ begin
             if precharge_started and precharge_counter < i_config.precharge_threshold then
                 precharge_counter <= precharge_counter + 1;
             elsif not precharge_started then
-                precharge_counter <= (others => '0');
+                precharge_counter <= 0;
             end if;
 
             if ras_counter_req and refresh_ras_counter < i_config.refresh_ras_threshold then
                 refresh_ras_counter <= refresh_ras_counter + 1;
             elsif not ras_counter_req then
-                refresh_ras_counter <= (others => '0');
+                refresh_ras_counter <= 0;
             end if;
         end if;
     end process;
@@ -105,14 +105,14 @@ begin
         case curr_state is
             when RESET                      =>
                 open_row_addr        <= (others => '0');
-                init_refresh_counter <= (others => '0');
+                init_refresh_counter <= 0;
 
                 initialized       <= false;
                 ras_counter_req   <= false;
                 refresh_taken     <= false;
                 precharge_started <= false;
 
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -121,7 +121,7 @@ begin
 
                 next_state <= WAIT_INIT;
             when WAIT_INIT =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -134,7 +134,7 @@ begin
                     next_state <= REFRESH_START;
                 end if;
             when REFRESH_START =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -144,7 +144,7 @@ begin
                 refresh_taken <= true;
                 next_state    <= REFRESH_CAS;
             when REFRESH_CAS =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '0';
                 o_we_n        <= '1';
@@ -154,7 +154,7 @@ begin
                 next_state      <= REFRESH_RAS;
                 ras_counter_req <= true;
             when REFRESH_RAS =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_we_n        <= '1';
@@ -171,7 +171,7 @@ begin
                     precharge_started <= false;
                 end if;
             when PRECHARGE =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -186,7 +186,7 @@ begin
                         next_state           <= REFRESH_START;
                         initialized          <= false;
                     else
-                        init_refresh_counter <= (others => '0');
+                        init_refresh_counter <= 0;
                         initialized          <= true;
 
                         if i_cs_n = '1' then
@@ -200,7 +200,7 @@ begin
                     next_state        <= PRECHARGE;
                 end if;
             when IDLE =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -215,7 +215,7 @@ begin
                     next_state <= IDLE;
                 end if;
             when ROW_ADDRESS_STROBE =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -225,7 +225,7 @@ begin
                 open_row_addr <= i_row_addr;
                 next_state    <= ROW_ACTIVE;
             when ROW_ACTIVE =>
-                o_dsack       <= '0';
+                o_dsack_n     <= '1';
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_we_n        <= '1';
@@ -244,7 +244,7 @@ begin
                     next_state <= ROW_ACTIVE;
                 end if;
             when READ_WRITE =>
-                o_dsack       <= '1';
+                o_dsack_n     <= '0';
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_we_n        <= i_we_n;

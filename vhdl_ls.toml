@@ -1,11 +1,7 @@
 [libraries]
 common_lib.files = [
-    'lib/**/*.vhd',
-    'lib/*.vhd',
     'src/**/*.vhd',
     'src/*.vhd',
-    'testbench/**/*.vhd',
-    'testbench/*.vhd',
 ]
 
 [lint]

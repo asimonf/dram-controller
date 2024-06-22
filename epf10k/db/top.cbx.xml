@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<LOG_ROOT>
+	<PROJECT NAME="top">
+		<CBX_INST_ENTRY INSTANCE_NAME="|top|ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|lpm_add_sub:Add2" CBX_FILE_NAME="add_sub_0sh.tdf"/>
+		<CBX_INST_ENTRY INSTANCE_NAME="|top|ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|lpm_add_sub:Add2" CBX_FILE_NAME="add_sub_0sh.tdf"/>
+	</PROJECT>
+</LOG_ROOT>

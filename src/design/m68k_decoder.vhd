@@ -2,8 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
-use work.utils.all;
+library common;
+use common.utils.all;
 
 -- This decoder is made for a 68020 compatible bus.
 -- 
@@ -26,18 +26,21 @@ entity m68k_decoder is
     port (
         i_reset_n : in std_logic;
         i_clk     : in std_logic;
+        i_rdy     : in std_logic;
 
         i_as_n : in std_logic;
-        i_addr : in sys_address_t;
+        i_addr : in t_sys_address;
         i_siz  : in std_logic_vector(1 downto 0);
         i_rw_n : in std_logic;
         i_fc   : in std_logic_vector(2 downto 0);
 
-        o_we_n : out byte_sel_vector_t;
-        o_oe_n : out byte_sel_vector_t;
+        o_we_n : out t_byte_sel_vector;
+        o_oe_n : out t_byte_sel_vector;
 
         o_io_cs_n  : out std_logic_vector(IO_SELECTS - 1 downto 0);
-        o_mem_cs_n : out std_logic);
+        o_mem_cs_n : out std_logic;
+
+        o_dsack_n : out std_logic);
 end m68k_decoder;
 
 architecture behavioral of m68k_decoder is
@@ -47,7 +50,7 @@ architecture behavioral of m68k_decoder is
     end function MemBase;
 
     function InMemSpace(
-        sys_address : sys_address_t
+        sys_address : t_sys_address
     ) return boolean is
         variable addr_block : integer range 0 to 2 ** (ADDRESS_WIDTH - BASE_BLOCK_WIDTH) - 1;
     begin
@@ -57,7 +60,7 @@ architecture behavioral of m68k_decoder is
     end function InMemSpace;
 
     function InIOSpace(
-        sys_address : sys_address_t;
+        sys_address : t_sys_address;
         io_sel      : integer
     ) return boolean is
         variable addr_block : integer range 0 to 2 ** (ADDRESS_WIDTH - BASE_BLOCK_WIDTH) - 1;
@@ -104,6 +107,8 @@ begin
     assert IO_SELECTS > 0;
 
     -- Logic
+    o_dsack_n <= not i_rdy;
+
     cpu_cycle <= i_fc(2) and i_fc(1) and i_fc(0);
 
     o_io_cs_n  <= io_cs_n;
@@ -144,23 +149,35 @@ begin
     o_oe_n(1) <= lmb_sel_n or not i_rw_n;
     o_oe_n(0) <= llb_sel_n or not i_rw_n;
 
-    process (i_clk)
+    process (i_reset_n, i_clk)
+        procedure handle_reset is
+        begin
+            cs_n     <= '1';
+            io_cs_n  <= (others => '1');
+            mem_cs_n <= '1';
+        end procedure;
     begin
-        if rising_edge(i_clk) then
-            if i_reset_n = '0' or cpu_cycle = '1' or i_as_n = '1' then
-                cs_n     <= '1';
-                io_cs_n  <= (others => '1');
-                mem_cs_n <= '1';
+        if i_reset_n = '0' then
+            handle_reset;
+        elsif rising_edge(i_clk) then
+            if cpu_cycle = '1' or i_as_n = '1' then
+                handle_reset;
             else
                 cs_n     <= '0';
                 io_cs_n  <= (others => '1');
                 mem_cs_n <= '1';
 
-                for i in 0 to 2 ** IO_SELECTS - 1 loop
-                    io_cs_n(i) <= '0' when InIOSpace(i_addr, i) else '1';
-                end loop;
+                if InMemSpace(i_addr) then
+                    mem_cs_n <= '0';
+                else
+                    mem_cs_n <= '1';
 
-                mem_cs_n <= '0' when InMemSpace(i_addr) else '1';
+                    for i in 0 to IO_SELECTS - 1 loop
+                        if InIOSpace(i_addr, i) then
+                            io_cs_n(i) <= '0';
+                        end if;
+                    end loop;
+                end if;
             end if;
         end if;
     end process;

@@ -2,8 +2,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library common;
+use common.utils.all;
+
 library work;
-use work.utils.all;
 use work.ram_controller_types.all;
 -- This supports bank interleaving. If the bank width is larger than 0. For practical limitations, maybe limit yourself to
 -- only a few banks like 2 (bank width = 1).
@@ -23,12 +25,12 @@ use work.ram_controller_types.all;
 
 entity decoder is
     port (
-        i_addr : in sys_address_t;
+        i_addr : in t_sys_address;
 
-        o_row_addr : out row_address_t;
-        o_col_addr : out col_address_t;
+        o_row_addr : out t_row_address;
+        o_col_addr : out t_col_address;
 
-        o_bank : out bank_t);
+        o_bank : out t_bank);
 end decoder;
 
 architecture behavioral of decoder is

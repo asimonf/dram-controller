@@ -6,15 +6,15 @@ use work.ram_controller_types.all;
 
 entity mux is
     port (
-        i_row_address : in row_address_t;
-        i_col_address : in col_address_t;
+        i_row_address : in t_row_address;
+        i_col_address : in t_col_address;
 
-        i_bank        : in bank_t;
-        i_mux_col_sel : in bank_vector_t;
+        i_bank        : in t_bank;
+        i_mux_col_sel : in t_bank_vector;
 
-        o_addr : out mem_address_t);
+        o_addr : out t_mem_address);
 end mux;
-s
+
 architecture behavioral of mux is
 begin
     process (i_mux_col_sel, i_bank, i_col_address, i_row_address)

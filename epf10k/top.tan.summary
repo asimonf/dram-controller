@@ -1,0 +1,96 @@
+--------------------------------------------------------------------------------------
+Timing Analyzer Summary
+--------------------------------------------------------------------------------------
+
+Type           : Worst-case tsu
+Slack          : N/A
+Required Time  : None
+Actual Time    : 8.400 ns
+From           : i_addr[23]
+To             : ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|row_changed
+From Clock     : --
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Worst-case tco
+Slack          : N/A
+Required Time  : None
+Actual Time    : 14.800 ns
+From           : ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|curr_state.READ_WRITE
+To             : o_addr[1]
+From Clock     : i_clk
+To Clock       : --
+Failed Paths   : 0
+
+Type           : Worst-case tpd
+Slack          : N/A
+Required Time  : None
+Actual Time    : 14.100 ns
+From           : i_addr[10]
+To             : o_addr[1]
+From Clock     : --
+To Clock       : --
+Failed Paths   : 0
+
+Type           : Worst-case th
+Slack          : N/A
+Required Time  : None
+Actual Time    : -0.700 ns
+From           : i_fc[1]
+To             : m68k_decoder:m68k_decoder_inst|cs_n
+From Clock     : --
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Clock Setup: 'i_clk'
+Slack          : 5.381 ns
+Required Time  : 55.00 MHz ( period = 18.181 ns )
+Actual Time    : 78.13 MHz ( period = 12.800 ns )
+From           : ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|refresh_cycle_counter[7]
+To             : ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|refresh_cycle_counter[3]
+From Clock     : i_clk
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Clock Hold: 'i_clk'
+Slack          : 0.800 ns
+Required Time  : 55.00 MHz ( period = 18.181 ns )
+Actual Time    : N/A
+From           : ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|init_refresh_counter[1]
+To             : ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|init_refresh_counter[1]
+From Clock     : i_clk
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Recovery: 'i_clk'
+Slack          : 12.681 ns
+Required Time  : 20.481 ns
+Actual Time    : 7.800 ns
+From           : reset_sync:reset_sync_inst|r_reset_2
+To             : ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|curr_state.READ_WRITE
+From Clock     : i_clk
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Removal: 'i_clk'
+Slack          : 3.800 ns
+Required Time  : 4.000 ns
+Actual Time    : 7.800 ns
+From           : reset_sync:reset_sync_inst|r_reset_2
+To             : ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|curr_state.READ_WRITE
+From Clock     : i_clk
+To Clock       : i_clk
+Failed Paths   : 0
+
+Type           : Total number of failed paths
+Slack          : 
+Required Time  : 
+Actual Time    : 
+From           : 
+To             : 
+From Clock     : 
+To Clock       : 
+Failed Paths   : 0
+
+--------------------------------------------------------------------------------------
+

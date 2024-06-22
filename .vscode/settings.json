@@ -1,8 +1,0 @@
-{
-    "triggerTaskOnSave.tasks": {
-        "reload-on-save": [
-            "testbench/**/*.vhd",
-            "testbench/*.vhd",
-        ]
-    }
-}

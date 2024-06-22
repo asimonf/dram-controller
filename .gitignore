@@ -25,5 +25,8 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-work
+vunit_out
+.venv
 
+*.vhd.bak
+*.vhdl.bak

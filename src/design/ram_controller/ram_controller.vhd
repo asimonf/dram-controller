@@ -2,8 +2,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library common;
+use common.utils.all;
+
 library work;
-use work.utils.all;
 use work.ram_controller_types.all;
 
 entity ram_controller is
@@ -11,59 +13,31 @@ entity ram_controller is
         i_reset_n : in std_logic;
         i_clk     : in std_logic;
 
-        i_cs_n : in std_logic;
-        i_addr : in sys_address_t;
+        i_mem_cs_n  : in std_logic;
+        i_conf_cs_n : in std_logic;
+        i_addr      : in t_sys_address;
+        io_data     : inout t_sys_data;
+        i_rw_n      : in std_logic;
 
-        o_addr  : out mem_address_t;
-        o_ras_n : out bank_vector_t;
-        o_cas_n : out bank_vector_t;
+        o_addr  : out t_mem_address;
+        o_ras_n : out t_bank_vector;
+        o_cas_n : out t_bank_vector;
 
-        o_rdy_n : out std_logic);
+        o_rdy : out std_logic);
 end ram_controller;
 
-architecture rtl of ram_controller is
-    component state_machine is
-        port (
-            i_config   : in controller_config_record;
-            i_clk      : in std_logic;
-            i_reset_n  : in std_logic;
-            i_cs_n     : in std_logic;
-            i_row_addr : in row_address_t;
-
-            o_rdy_n       : out std_logic;
-            o_ras_n       : out std_logic;
-            o_cas_n       : out std_logic;
-            o_mux_col_sel : out std_logic);
-    end component;
-
-    component mux is
-        port (
-            i_row_address : in row_address_t;
-            i_col_address : in col_address_t;
-
-            i_bank        : in bank_t;
-            i_mux_col_sel : in bank_vector_t;
-
-            o_addr : out mem_address_t);
-    end component;
-
-    component decoder is
-        port (
-            i_addr : in sys_address_t;
-
-            o_row_addr : out row_address_t;
-            o_col_addr : out col_address_t;
-
-            o_bank : out bank_t);
-    end component;
-
+architecture behavioral of ram_controller is
     signal config : controller_config_record;
 
-    signal row_addr    : row_address_t;
-    signal col_addr    : col_address_t;
-    signal bank        : bank_t;
-    signal mux_col_sel : bank_vector_t;
-    signal rdy_n       : bank_vector_t;
+    signal row_addr    : t_row_address;
+    signal col_addr    : t_col_address;
+    signal bank        : t_bank;
+    signal mux_col_sel : t_bank_vector;
+    signal cfg_rdy     : std_logic;
+    signal rdy         : t_bank_vector;
+
+    signal mem_cs_n : std_logic;
+    signal cfg_cs_n : std_logic;
 begin
     -- BEGIN Assertions
 
@@ -79,43 +53,56 @@ begin
 
     -- END Assertions
 
-    config.init_refresh_threshold <= INIT_REFRESH_THRESHOLD_CONST;
-    config.refresh_threshold      <= REFRESH_THRESHOLD_CONST;
-    config.precharge_threshold    <= PRECHARGE_THRESHOLD_CONST;
-    config.refresh_ras_threshold  <= REFRESH_RAS_THRESHOLD_CONST;
-
-    dec_0 : decoder
-    port map(
-        i_addr     => i_addr,
-        o_row_addr => row_addr,
-        o_col_addr => col_addr,
-        o_bank     => bank
-    );
-
-    banks : for i in 0 to TOP_BANK generate
-    begin
-        state_machine_inst : state_machine
+    config_regs_inst : entity work.config_regs
         port map(
-            i_config      => config,
-            i_clk         => i_clk,
-            i_reset_n     => i_reset_n,
-            i_cs_n        => i_cs_n,
-            i_row_addr    => row_addr,
-            o_rdy_n       => rdy_n(i),
-            o_ras_n       => o_ras_n(i),
-            o_cas_n       => o_cas_n(i),
-            o_mux_col_sel => mux_col_sel(i)
+            i_clk     => i_clk,
+            i_reset_n => i_reset_n,
+            i_cs_n    => cfg_cs_n,
+            i_rw_n    => i_rw_n,
+            io_data   => io_data,
+            o_config  => config,
+            o_rdy     => cfg_rdy
         );
-    end generate banks;
 
-    mux_inst : mux
-    port map(
-        i_row_address => row_addr,
-        i_col_address => col_addr,
-        i_bank        => bank,
-        i_mux_col_sel => mux_col_sel,
-        o_addr        => o_addr
-    );
+    dec_inst : entity work.decoder
+        port map
+        (
+            i_addr     => i_addr,
+            o_row_addr => row_addr,
+            o_col_addr => col_addr,
+            o_bank     => bank
+        );
 
-    o_rdy_n <= rdy_n(bank);
+    banks_inst : for i in 0 to TOP_BANK generate
+    begin
+        state_machine_inst : entity work.state_machine
+            port map(
+                i_config      => config,
+                i_clk         => i_clk,
+                i_reset_n     => i_reset_n,
+                i_cs_n        => mem_cs_n,
+                i_row_addr    => row_addr,
+                o_rdy         => rdy(i),
+                o_ras_n       => o_ras_n(i),
+                o_cas_n       => o_cas_n(i),
+                o_mux_col_sel => mux_col_sel(i)
+            );
+    end generate banks_inst;
+
+    mux_inst : entity work.mux
+        port map(
+            i_row_address => row_addr,
+            i_col_address => col_addr,
+            i_bank        => bank,
+            i_mux_col_sel => mux_col_sel,
+            o_addr        => o_addr
+        );
+
+    mem_cs_n <= i_mem_cs_n;
+    cfg_cs_n <= i_conf_cs_n or not i_mem_cs_n;
+
+    o_rdy <=
+        cfg_rdy when cfg_cs_n = '0' else
+        rdy(bank) when mem_cs_n = '0' else
+        '0';
 end architecture;

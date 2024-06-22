@@ -1,7 +1,15 @@
 [libraries]
-common_lib.files = [
-    'src/**/*.vhd',
-    'src/*.vhd',
+common.files = [
+    'src/lib/**/*.vhd',
+    'src/lib/*.vhd',
+]
+default.files = [
+    'src/design/**/*.vhd',
+    'src/design/*.vhd',
+]
+tb.files = [
+    'src/testbench/**/*.vhd',
+    'src/testbench/*.vhd',
 ]
 
 [lint]

@@ -1,0 +1,28 @@
+
+State Machine - |top|ram_controller:ram_controller_inst|state_machine:\banks_inst:1:state_machine_inst|curr_state
+Name curr_state.REFRESH_RAS curr_state.REFRESH_CAS curr_state.REFRESH_START curr_state.ROW_PRECHARGE curr_state.REFRESH_PRECHARGE curr_state.READ_WRITE curr_state.ROW_ACTIVE curr_state.ROW_ADDRESS_STROBE curr_state.IDLE curr_state.WAIT_INIT curr_state.RESET 
+curr_state.RESET 0 0 0 0 0 0 0 0 0 0 0 
+curr_state.WAIT_INIT 0 0 0 0 0 0 0 0 0 1 1 
+curr_state.IDLE 0 0 0 0 0 0 0 0 1 0 1 
+curr_state.ROW_ADDRESS_STROBE 0 0 0 0 0 0 0 1 0 0 1 
+curr_state.ROW_ACTIVE 0 0 0 0 0 0 1 0 0 0 1 
+curr_state.READ_WRITE 0 0 0 0 0 1 0 0 0 0 1 
+curr_state.REFRESH_PRECHARGE 0 0 0 0 1 0 0 0 0 0 1 
+curr_state.ROW_PRECHARGE 0 0 0 1 0 0 0 0 0 0 1 
+curr_state.REFRESH_START 0 0 1 0 0 0 0 0 0 0 1 
+curr_state.REFRESH_CAS 0 1 0 0 0 0 0 0 0 0 1 
+curr_state.REFRESH_RAS 1 0 0 0 0 0 0 0 0 0 1 
+
+State Machine - |top|ram_controller:ram_controller_inst|state_machine:\banks_inst:0:state_machine_inst|curr_state
+Name curr_state.REFRESH_RAS curr_state.REFRESH_CAS curr_state.REFRESH_START curr_state.ROW_PRECHARGE curr_state.REFRESH_PRECHARGE curr_state.READ_WRITE curr_state.ROW_ACTIVE curr_state.ROW_ADDRESS_STROBE curr_state.IDLE curr_state.WAIT_INIT curr_state.RESET 
+curr_state.RESET 0 0 0 0 0 0 0 0 0 0 0 
+curr_state.WAIT_INIT 0 0 0 0 0 0 0 0 0 1 1 
+curr_state.IDLE 0 0 0 0 0 0 0 0 1 0 1 
+curr_state.ROW_ADDRESS_STROBE 0 0 0 0 0 0 0 1 0 0 1 
+curr_state.ROW_ACTIVE 0 0 0 0 0 0 1 0 0 0 1 
+curr_state.READ_WRITE 0 0 0 0 0 1 0 0 0 0 1 
+curr_state.REFRESH_PRECHARGE 0 0 0 0 1 0 0 0 0 0 1 
+curr_state.ROW_PRECHARGE 0 0 0 1 0 0 0 0 0 0 1 
+curr_state.REFRESH_START 0 0 1 0 0 0 0 0 0 0 1 
+curr_state.REFRESH_CAS 0 1 0 0 0 0 0 0 0 0 1 
+curr_state.REFRESH_RAS 1 0 0 0 0 0 0 0 0 0 1 

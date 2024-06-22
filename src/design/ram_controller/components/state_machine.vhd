@@ -2,9 +2,11 @@ library ieee;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
+library common;
+use common.utils.all;
+
 library work;
 use work.ram_controller_types.all;
-use work.utils.all;
 
 entity state_machine is
     port (
@@ -13,9 +15,9 @@ entity state_machine is
         i_clk      : in std_logic;
         i_reset_n  : in std_logic;
         i_cs_n     : in std_logic;
-        i_row_addr : in row_address_t;
+        i_row_addr : in t_row_address;
 
-        o_rdy_n : out std_logic;
+        o_rdy   : out std_logic;
         o_ras_n : out std_logic;
         o_cas_n : out std_logic;
 
@@ -42,87 +44,83 @@ architecture behavioral of state_machine is
     signal config : controller_config_record;
 
     -- Clock Synchronized
-    signal refresh_cycle_counter : refresh_counter_t := 0;     -- clk cycles to wait for next refresh
-    signal refresh_ras_counter   : small_counter_t   := 0;     -- clk cycles to wait in RAS during refresh
-    signal precharge_counter     : small_counter_t   := 0;     -- clk cycles to wait during precharge
+    signal refresh_cycle_counter : t_refresh_counter := 0;     -- clk cycles to wait for next refresh
+    signal refresh_ras_counter   : t_small_counter   := 0;     -- clk cycles to wait in RAS during refresh
+    signal precharge_counter     : t_small_counter   := 0;     -- clk cycles to wait during precharge
     signal refresh_req           : boolean           := false; -- signals that a refresh is required
-    signal open_row_addr         : row_address_t;
-    signal init_refresh_counter  : init_refresh_counter_t; -- refresh cycles after wait time
+    signal open_row_addr         : t_row_address;
+    signal init_refresh_counter  : t_init_refresh_counter; -- refresh cycles after wait time
     signal initialized           : boolean;
     signal row_changed           : boolean;
     signal cs_n                  : std_logic;
 begin
     -- Process for state transitions and output logic
-    process (i_clk)
+    process (i_reset_n, i_clk)
     begin
-        if rising_edge(i_clk) then
-            if i_reset_n = '0' then
-                curr_state <= RESET;
+        if i_reset_n = '0' then
+            curr_state <= RESET;
 
-                initialized           <= false;
-                row_changed           <= false;
-                open_row_addr         <= (others => '0');
-                init_refresh_counter  <= 0;
-                refresh_cycle_counter <= 0;
-                refresh_ras_counter   <= 0;
-                precharge_counter     <= 0;
-                refresh_req           <= false;
+            initialized           <= false;
+            row_changed           <= false;
+            open_row_addr         <= (others => '0');
+            init_refresh_counter  <= 0;
+            refresh_cycle_counter <= 0;
+            refresh_ras_counter   <= 0;
+            precharge_counter     <= 0;
+            refresh_req           <= false;
 
-                config.init_refresh_threshold <= 1;
-                config.refresh_threshold      <= 0;
-                config.precharge_threshold    <= 0;
-                config.refresh_ras_threshold  <= 0;
+            config.init_refresh_threshold <= 1;
+            config.refresh_threshold      <= 0;
+            config.precharge_threshold    <= 0;
+            config.refresh_ras_threshold  <= 0;
 
-                cs_n <= '1';
+            cs_n <= '1';
+        elsif rising_edge(i_clk) then
+            config.init_refresh_threshold <= i_config.init_refresh_threshold;
+            config.refresh_threshold      <= i_config.refresh_threshold;
+            config.precharge_threshold    <= i_config.precharge_threshold;
+            config.refresh_ras_threshold  <= i_config.refresh_ras_threshold;
+
+            curr_state <= next_state;
+            cs_n       <= i_cs_n;
+
+            if (curr_state = ROW_PRECHARGE or curr_state = REFRESH_PRECHARGE) and precharge_counter < config.precharge_threshold then
+                precharge_counter <= precharge_counter + 1;
             else
-                curr_state <= next_state;
-                cs_n       <= i_cs_n;
+                precharge_counter <= 0;
+            end if;
 
-                if initialized then
-                    if refresh_cycle_counter < config.refresh_threshold then
-                        refresh_cycle_counter <= refresh_cycle_counter + 1;
-                    elsif curr_state = REFRESH_START then
-                        refresh_cycle_counter <= 0;
-                        refresh_req           <= false;
-                    else
-                        refresh_req <= true;
-                    end if;
+            if curr_state = REFRESH_RAS and refresh_ras_counter < config.refresh_ras_threshold then
+                refresh_ras_counter <= refresh_ras_counter + 1;
+            else
+                refresh_ras_counter <= 0;
+            end if;
 
-                    if i_cs_n = '0' then
-                        open_row_addr <= i_row_addr;
-                        row_changed   <= i_row_addr /= open_row_addr;
-                    end if;
-                else
-                    if next_state = REFRESH_PRECHARGE and curr_state /= REFRESH_PRECHARGE then
-                        init_refresh_counter <= init_refresh_counter + 1;
-                    end if;
+            if refresh_cycle_counter < config.refresh_threshold then
+                refresh_cycle_counter <= refresh_cycle_counter + 1;
+            elsif curr_state = REFRESH_START then
+                refresh_cycle_counter <= 0;
+                refresh_req           <= false;
+            else
+                refresh_req <= true;
+            end if;
 
-                    if init_refresh_counter = config.init_refresh_threshold then
-                        initialized <= true;
-                    end if;
-
-                    if i_cs_n = '0' then
-                        config.init_refresh_threshold <= i_config.init_refresh_threshold;
-                        config.refresh_threshold      <= i_config.refresh_threshold;
-                        config.precharge_threshold    <= i_config.precharge_threshold;
-                        config.refresh_ras_threshold  <= i_config.refresh_ras_threshold;
-                    end if;
-
-                    refresh_cycle_counter <= 0;
-                    refresh_req           <= false;
+            if initialized then
+                if i_cs_n = '0' then
+                    open_row_addr <= i_row_addr;
+                    row_changed   <= i_row_addr /= open_row_addr;
+                end if;
+            else
+                if next_state = REFRESH_PRECHARGE and curr_state /= REFRESH_PRECHARGE then
+                    init_refresh_counter <= init_refresh_counter + 1;
                 end if;
 
-                if (curr_state = ROW_PRECHARGE or curr_state = REFRESH_PRECHARGE) and precharge_counter < config.precharge_threshold then
-                    precharge_counter <= precharge_counter + 1;
-                else
-                    precharge_counter <= 0;
+                if init_refresh_counter = config.init_refresh_threshold then
+                    initialized <= true;
                 end if;
 
-                if curr_state = REFRESH_RAS and refresh_ras_counter < config.refresh_ras_threshold then
-                    refresh_ras_counter <= refresh_ras_counter + 1;
-                else
-                    refresh_ras_counter <= 0;
-                end if;
+                refresh_cycle_counter <= 0;
+                refresh_req           <= false;
             end if;
         end if;
     end process;
@@ -132,14 +130,14 @@ begin
     begin
         case curr_state is
             when RESET =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
 
                 next_state <= WAIT_INIT;
             when WAIT_INIT =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
@@ -150,14 +148,14 @@ begin
                     next_state <= REFRESH_START;
                 end if;
             when REFRESH_START =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
 
                 next_state <= REFRESH_CAS;
             when REFRESH_CAS =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '0';
                 o_mux_col_sel <= '0';
@@ -165,7 +163,7 @@ begin
                 next_state <= REFRESH_RAS;
 
             when REFRESH_RAS =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_mux_col_sel <= '0';
@@ -176,7 +174,7 @@ begin
                     next_state <= REFRESH_RAS;
                 end if;
             when ROW_PRECHARGE =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
@@ -191,7 +189,7 @@ begin
                     next_state <= ROW_PRECHARGE;
                 end if;
             when REFRESH_PRECHARGE =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
@@ -206,7 +204,7 @@ begin
                     next_state <= REFRESH_PRECHARGE;
                 end if;
             when IDLE =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '1';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
@@ -219,14 +217,14 @@ begin
                     next_state <= IDLE;
                 end if;
             when ROW_ADDRESS_STROBE =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '0';
 
                 next_state <= ROW_ACTIVE;
             when ROW_ACTIVE =>
-                o_rdy_n       <= '1';
+                o_rdy         <= '0';
                 o_ras_n       <= '0';
                 o_cas_n       <= '1';
                 o_mux_col_sel <= '1';
@@ -243,7 +241,7 @@ begin
                     next_state <= ROW_ACTIVE;
                 end if;
             when READ_WRITE =>
-                o_rdy_n       <= '0';
+                o_rdy         <= '1';
                 o_ras_n       <= '0';
                 o_cas_n       <= '0';
                 o_mux_col_sel <= '1';

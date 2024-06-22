@@ -1,0 +1,86 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2009 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 9.0 Build 132 02/25/2009 SJ Web Edition
+# Date created = 21:15:54  June 12, 2024
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		top_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY FLEX10KA
+set_global_assignment -name DEVICE "EPF10K10ATC144-1"
+set_global_assignment -name TOP_LEVEL_ENTITY top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 9.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:15:54  JUNE 12, 2024"
+set_global_assignment -name LAST_QUARTUS_VERSION 9.0
+set_global_assignment -name USE_GENERATED_PHYSICAL_CONSTRAINTS OFF -section_id eda_blast_fpga
+set_global_assignment -name INCREMENTAL_COMPILATION OFF
+set_global_assignment -name FLEX10K_DEVICE_IO_STANDARD LVTTL/LVCMOS
+set_location_assignment PIN_125 -to i_clk
+set_global_assignment -name MISC_FILE "C:/users/asimonf/Documents/dram-controller/epf10k/top.dpf"
+set_global_assignment -name FMAX_REQUIREMENT "55 MHz" -section_id "mem clock"
+set_instance_assignment -name CLOCK_SETTINGS "mem clock" -to i_clk
+set_global_assignment -name STRATIXII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name CYCLONE_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name STRATIX_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name MAXII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name APEX20K_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name MERCURY_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name FLEX10K_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name SMART_RECOMPILE ON
+set_global_assignment -name ENABLE_DRC_SETTINGS ON
+set_global_assignment -name ENABLE_CLOCK_LATENCY ON
+set_global_assignment -name ENABLE_RECOVERY_REMOVAL_ANALYSIS ON
+set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
+set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
+set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
+set_location_assignment PIN_54 -to i_as_n
+set_location_assignment PIN_122 -to i_reset_n
+set_location_assignment PIN_128 -to i_rw_n
+set_instance_assignment -name AUTO_GLOBAL_CLOCK ON -to i_clk
+set_instance_assignment -name AUTO_GLOBAL_OE ON -to i_rw_n
+set_global_assignment -name ENABLE_DEVICE_WIDE_RESET OFF
+set_global_assignment -name ENABLE_DEVICE_WIDE_OE OFF
+set_global_assignment -name ON_CHIP_BITSTREAM_DECOMPRESSION OFF
+set_global_assignment -name VHDL_FILE ../src/design/reset_sync.vhd
+set_global_assignment -name VHDL_FILE ../src/design/m68k_decoder.vhd
+set_global_assignment -name VHDL_FILE ../src/design/top.vhd
+set_global_assignment -name VHDL_FILE ../src/lib/utils.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/ram_controller.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/types.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/components/config_regs.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/components/decoder.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/components/mux.vhd
+set_global_assignment -name VHDL_FILE ../src/design/ram_controller/components/state_machine.vhd
+set_global_assignment -name FLEX10K_CONFIGURATION_SCHEME "PASSIVE PARALLEL ASYNCHRONOUS"
+set_global_assignment -name GENERATE_TTF_FILE ON
+set_global_assignment -name GENERATE_HEX_FILE ON
